@@ -3,14 +3,14 @@ package edu.smu.smusql;
 import java.util.*;
 
 public class Table {
-    private LinearProbeHashMap<String, Map<String, String>> dataList;
+    private DoubleHashingHashMap<String, Map<String, String>> dataList;
     private String name;
     private List<String> columns;
 
     public Table(String name, List<String> columns) {
         this.name = name;
         this.columns = columns;
-        this.dataList = new LinearProbeHashMap<>(); // Edit here on which one to use
+        this.dataList = new DoubleHashingHashMap<>(); // Edit here on which one to use
     }
 
     public String getName() {
@@ -37,20 +37,20 @@ public class Table {
         dataList.remove(key); // Remove a row by its key
     }
 
-    public LinearProbeHashMap<String, Map<String, String>> getDataList() {
+    public DoubleHashingHashMap<String, Map<String, String>> getDataList() {
         return dataList;
     }
 
-    public List<Map<String, String>> getDataList() {
-        List<Map<String, String>> rows = new ArrayList<>();
-        for (String key : dataList.keys()) {
-            rows.add(dataList.get(key));
-        }
-        return rows; // Return the list of rows
-    }
+    // public List<Map<String, String>> getDataList() {
+    //     List<Map<String, String>> rows = new ArrayList<>();
+    //     for (String key : dataList.keys()) {
+    //         rows.add(dataList.get(key));
+    //     }
+    //     return rows; // Return the list of rows
+    // }
 
 
-    public void setDataList(LinearProbeHashMap<String, Map<String, String>> dataList) {
+    public void setDataList(DoubleHashingHashMap<String, Map<String, String>> dataList) {
         this.dataList = dataList; // Set the dataList to a new ChainHashMap
     }
 }
