@@ -86,7 +86,7 @@ public class Engine {
         }
     
         // Get the data from the table (assuming it's stored in a chain hash map)
-        LinearProbeHashMap<String, Map<String, String>> tableData = tbl.getDataList(); // Assuming getData() returns your ChainHashMap
+        QuadraticProbeHashMap<String, Map<String, String>> tableData = tbl.getDataList(); // Assuming getData() returns your ChainHashMap
         List<String> columns = tbl.getColumns();
     
         // Initialize whereClauseConditions list
@@ -142,7 +142,7 @@ public class Engine {
         return "ERROR: No such table: " + tableName;
     }
 
-    LinearProbeHashMap<String, Map<String, String>> tableData = tbl.getDataList(); // Assuming getData() returns your ChainHashMap
+    QuadraticProbeHashMap<String, Map<String, String>> tableData = tbl.getDataList(); // Assuming getData() returns your ChainHashMap
     List<String> columns = tbl.getColumns();
 
     // Initialize whereClauseConditions list
@@ -200,7 +200,7 @@ public class Engine {
         List<String> columns = tbl.getColumns();
     
         // Retrieve table data
-        LinearProbeHashMap<String, Map<String, String>> tableData = tbl.getDataList(); // Assuming getData() returns your ChainHashMap
+        QuadraticProbeHashMap<String, Map<String, String>> tableData = tbl.getDataList(); // Assuming getData() returns your ChainHashMap
     
         // Initialize whereClauseConditions list
         List<String[]> whereClauseConditions = new ArrayList<>();
@@ -265,13 +265,12 @@ public class Engine {
     }
 
     //Additional methods
-    private String queryBetweenParentheses(String[] tokens, int index) {
-        // Ensure the index is valid
-        if (index < tokens.length && tokens[index].startsWith("(") && tokens[index].endsWith(")")) {
-            // Remove parentheses and return the content
-            return tokens[index].substring(1, tokens[index].length() - 1);
+    private String queryBetweenParentheses(String[] tokens, int startIndex) {
+        StringBuilder result = new StringBuilder();
+        for (int i = startIndex; i < tokens.length; i++) {
+            result.append(tokens[i]).append(" ");
         }
-        return "ERROR: Invalid input does not start with ( or end with )"; // or handle the error appropriately
+        return result.toString().trim().replaceAll("\\(", "").replaceAll("\\)", "");
     }
 
 // Helper method to determine if a string is an operator
