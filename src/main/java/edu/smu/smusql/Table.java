@@ -41,13 +41,13 @@ public class Table {
         return dataList;
     }
 
-    public List<Map<String, String>> getDataList() {
-        List<Map<String, String>> rows = new ArrayList<>();
-        for (String key : dataList.keys()) {
-            rows.add(dataList.get(key));
-        }
-        return rows; // Return the list of rows
-    }
+    // public List<Map<String, String>> getDataList() {
+    //     List<Map<String, String>> rows = new ArrayList<>();
+    //     for (String key : dataList.keys()) {
+    //         rows.add(dataList.get(key));
+    //     }
+    //     return rows; // Return the list of rows
+    // }
 
 
     public void setDataList(LinearProbeHashMap<String, Map<String, String>> dataList) {
