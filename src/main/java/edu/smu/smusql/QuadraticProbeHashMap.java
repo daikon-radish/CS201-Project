@@ -48,20 +48,23 @@ public class QuadraticProbeHashMap<K, V> {
         
         int index = hash(key);
         int i = 0; // Step counter for quadratic probing
-
+    
         // Quadratic probing: find the next available or matching slot
-        while (table[(index + i * i) % table.length] != null && 
-               table[(index + i * i) % table.length] != DELETED &&
-               !table[(index + i * i) % table.length].key.equals(key)) {
+        while (table[Math.abs((index + i * i) % table.length)] != null && 
+               table[Math.abs((index + i * i) % table.length)] != DELETED &&
+               !table[Math.abs((index + i * i) % table.length)].key.equals(key)) {
             i++;
+            // Optional safeguard to avoid infinite loops:
+            if (i >= table.length) break; // Prevent infinite loop if no free slot found
         }
-
-        index = (index + i * i) % table.length; // Final index after probing
+    
+        index = Math.abs((index + i * i) % table.length); // Final index after probing
         if (table[index] == null || table[index] == DELETED) {
             size++;
         }
         table[index] = new Entry<>(key, value);
     }
+    
 
     public V get(K key) {
         int index = hash(key);
