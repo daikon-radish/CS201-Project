@@ -53,20 +53,23 @@ public class DoubleHashingHashMap<K, V> {
         int index = hash1(key);
         int stepSize = hash2(key);
         int i = 0; // Step counter for double hashing
-
+    
         // Double hashing: find the next available or matching slot
-        while (table[(index + i * stepSize) % table.length] != null && 
-               table[(index + i * stepSize) % table.length] != DELETED &&
-               !table[(index + i * stepSize) % table.length].key.equals(key)) {
+        while (table[Math.floorMod((index + i * stepSize), table.length)] != null && 
+               table[Math.floorMod((index + i * stepSize), table.length)] != DELETED &&
+               !table[Math.floorMod((index + i * stepSize), table.length)].key.equals(key)) {
             i++;
+            // Optional safeguard to prevent excessive probing
+            if (i >= table.length) break; // Prevents infinite probing loops if no slot found
         }
-
-        index = (index + i * stepSize) % table.length; // Final index after probing
+    
+        index = Math.floorMod((index + i * stepSize), table.length); // Final index after probing
         if (table[index] == null || table[index] == DELETED) {
             size++;
         }
         table[index] = new Entry<>(key, value);
     }
+    
 
     public V get(K key) {
         int index = hash1(key);
