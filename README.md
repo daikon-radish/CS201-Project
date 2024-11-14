@@ -1,3 +1,5 @@
 # CS103-Project
 
-To r
+To run:
+mvn compile
+mvn exec:java
