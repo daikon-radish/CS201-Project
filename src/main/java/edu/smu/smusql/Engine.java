@@ -292,42 +292,37 @@ private boolean isOperator(String token) {
 }
 
 private boolean evaluateWhereConditions(Map<String, String> row, List<String[]> conditions) {
-    boolean overallMatch = true;
-    boolean nextConditionShouldMatch = true; // Default behavior for AND
-
+    boolean overallMatch = false; // Start with false for OR logic
+    boolean currentConditionResult = true; // Evaluate each condition independently
+    
+    // Loop through conditions to evaluate AND/OR logic correctly
     for (String[] condition : conditions) {
-        if (condition[0] != null) { // AND/OR operator
-            nextConditionShouldMatch = condition[0].equals("AND");
+        if (condition[0] != null) { // Logical operator (AND/OR)
+            if (condition[0].equals("AND")) {
+                overallMatch = overallMatch && currentConditionResult;
+            } else if (condition[0].equals("OR")) {
+                overallMatch = overallMatch || currentConditionResult;
+            }
+            currentConditionResult = true; // Reset for the next condition
         } else {
-            // Parse column, operator, and value
+            // Evaluate single condition
             String column = condition[1];
             String operator = condition[2];
             String value = condition[3];
-
-            // Get the row value once
             String rowValue = row.get(column);
-            boolean currentMatch = evaluateCondition(rowValue, operator, value);
-
-            if (nextConditionShouldMatch) {
-                // Short-circuit for AND: if currentMatch is false, overallMatch is false
-                overallMatch = overallMatch && currentMatch;
-                // If overallMatch is already false, exit early
-                if (!overallMatch) {
-                    return false; // Short-circuit
-                }
-            } else {
-                // Short-circuit for OR: if currentMatch is true, overallMatch is true
-                overallMatch = overallMatch || currentMatch;
-                // If overallMatch is already true, exit early
-                if (overallMatch) {
-                    return true; // Short-circuit
-                }
-            }
+            boolean match = evaluateCondition(rowValue, operator, value);
+            
+            // Update `currentConditionResult` for this condition
+            currentConditionResult = currentConditionResult && match;
         }
     }
-
-    return overallMatch; // Return the overall result
+    
+    // Final combination of the last evaluated condition
+    overallMatch = overallMatch || currentConditionResult;
+    
+    return overallMatch;
 }
+
 
 // Helper method to evaluate a single condition
 private boolean evaluateCondition(String columnValue, String operator, String value) {
