@@ -3,54 +3,55 @@ package edu.smu.smusql;
 import java.util.*;
 
 public class Table {
-    private QuadraticProbeHashMap<String, Map<String, String>> dataList;
     private String name;
     private List<String> columns;
+    private TreeMap<String, Map<String, String>> bTree; // B-Tree for ordered data
+    private HashMap<String, Map<String, String>> hashMap; // HashMap for fast lookups
 
     public Table(String name, List<String> columns) {
         this.name = name;
         this.columns = columns;
-        this.dataList = new QuadraticProbeHashMap<>(); // Edit here on which one to use
-    }
-
-    public String getName() {
-        return name;
+        this.bTree = new TreeMap<>();
+        this.hashMap = new HashMap<>();
     }
 
     public List<String> getColumns() {
         return columns;
     }
 
+    public TreeMap<String, Map<String, String>> getBTree() {
+        return bTree;
+    }
+
+    public HashMap<String, Map<String, String>> getHashMap() {
+        return hashMap;
+    }
+
     public void addRow(String key, Map<String, String> newRow) {
         if (newRow.keySet().containsAll(columns)) {
-            dataList.put(key, newRow); // Add the row with the specified key
+            hashMap.put(key, newRow); // Add to HashMap
+            bTree.put(key, newRow); // Add to TreeMap
         } else {
             throw new IllegalArgumentException("Row must contain all columns");
         }
     }
 
-    public Map<String, String> getRow(String key) {
-        return dataList.get(key); // Retrieve a row by its key
-    }
-
     public void removeRow(String key) {
-        dataList.remove(key); // Remove a row by its key
+        bTree.remove(key);
+        hashMap.remove(key);
     }
 
-    public QuadraticProbeHashMap<String, Map<String, String>> getDataList() {
-        return dataList;
+
+    //Retrieves a single row by key (uses HashMap)
+    public Map<String, String> getRow(String key) {
+        return hashMap.get(key); // HashMap for exact match queries
     }
 
-    // public List<Map<String, String>> getDataList() {
-    //     List<Map<String, String>> rows = new ArrayList<>();
-    //     for (String key : dataList.keys()) {
-    //         rows.add(dataList.get(key));
-    //     }
-    //     return rows; // Return the list of rows
-    // }
+    public List<Map<String, String>> getRowsInRange(String startKey, String endKey) {
+        return new ArrayList<>(bTree.subMap(startKey, true, endKey, true).values());
+    }
 
-
-    public void setDataList(QuadraticProbeHashMap<String, Map<String, String>> dataList) {
-        this.dataList = dataList; // Set the dataList to a new ChainHashMap
+    public Collection<Map<String, String>> getAllRowsOrdered() {
+        return bTree.values(); // Ordered retrieval
     }
 }

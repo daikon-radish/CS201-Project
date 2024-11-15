@@ -28,6 +28,31 @@ public class Engine {
         }
     }
 
+    public String create(String[] tokens) { 
+        if (!tokens[1].equalsIgnoreCase("TABLE")) {
+            return "ERROR: Invalid CREATE TABLE syntax";
+        }
+
+        String tableName = tokens[2];
+
+        // Check if the table already exists
+        if (tableMap.containsKey(tableName)) {
+            return "ERROR: Table already exists";
+        }
+
+        // Extract the column list between parentheses
+        String columnList = queryBetweenParentheses(tokens, 3);
+        List<String> columns = Arrays.stream(columnList.split(","))
+                                     .map(String::trim)
+                                     .collect(Collectors.toList());
+
+        // Create the new table and add it to the hash map
+        Table newTable = new Table(tableName, columns);
+        tableMap.put(tableName, newTable); // Store table by name
+
+        return "Table " + tableName + " created";
+    }
+
     public String insert(String[] tokens) {
         if (tokens.length < 5 || !tokens[1].equalsIgnoreCase("INTO")) {
             return "ERROR: Invalid INSERT INTO syntax.";
@@ -85,10 +110,7 @@ public class Engine {
             return "Error: no such table: " + tableName;
         }
     
-        // Get the data from the table (assuming it's stored in a chain hash map)
-        QuadraticProbeHashMap<String, Map<String, String>> tableData = tbl.getDataList(); // Assuming getData() returns your ChainHashMap
         List<String> columns = tbl.getColumns();
-    
         // Initialize whereClauseConditions list
         List<String[]> whereClauseConditions = new ArrayList<>();
     
@@ -115,72 +137,66 @@ public class Engine {
         int ct = 0; // count number of rows affected.
         
         // Iterate over the keys in the hash map and check for matches
-        Iterable<String> keys = tableData.keys();
-        for (String key : keys) {
-            Map<String, String> row = tableData.get(key);
+        for (String key : tbl.getHashMap().keySet()) {
+            Map<String, String> row = tbl.getRow(key);
             boolean match = evaluateWhereConditions(row, whereClauseConditions);
-    
+
             if (match) {
-                tableData.remove(key); // Remove the matching entry
-                ct++; // Increment count of affected rows
+                tbl.removeRow(key);
+                ct++;
             }
         }
-    
         return "Rows deleted from " + tableName + ". " + ct + " rows affected.";
     }
 
     public String select(String[] tokens) {
-    if (!tokens[1].equals("*") || !tokens[2].equalsIgnoreCase("FROM")) {
-        return "ERROR: Invalid SELECT syntax.";
-    }
+        if (!tokens[1].equals("*") || !tokens[2].equalsIgnoreCase("FROM")) {
+            return "ERROR: Invalid SELECT syntax.";
+        }
 
-    String tableName = tokens[3];
-    
-    // Use HashMap for direct table lookup
-    Table tbl = tableMap.get(tableName);
-    if (tbl == null) {
-        return "ERROR: No such table: " + tableName;
-    }
+        String tableName = tokens[3];
+        
+        // Use HashMap for direct table lookup
+        Table tbl = tableMap.get(tableName);
+        if (tbl == null) {
+            return "ERROR: No such table: " + tableName;
+        }
 
-    QuadraticProbeHashMap<String, Map<String, String>> tableData = tbl.getDataList(); // Assuming getData() returns your ChainHashMap
-    List<String> columns = tbl.getColumns();
+        // Initialize whereClauseConditions list
+        List<String[]> whereClauseConditions = new ArrayList<>();
 
-    // Initialize whereClauseConditions list
-    List<String[]> whereClauseConditions = new ArrayList<>();
-
-    // Parse WHERE clause conditions
-    if (tokens.length > 4 && tokens[4].equalsIgnoreCase("WHERE")) {
-        for (int i = 5; i < tokens.length; i++) {
-            if (tokens[i].equalsIgnoreCase("AND") || tokens[i].equalsIgnoreCase("OR")) {
-                // Add AND/OR conditions
-                whereClauseConditions.add(new String[] {tokens[i].toUpperCase(), null, null, null});
-            } else if (isOperator(tokens[i])) {
-                // Add condition with operator (column, operator, value)
-                String column = tokens[i - 1];
-                String operator = tokens[i];
-                String value = tokens[i + 1];
-                whereClauseConditions.add(new String[] {null, column, operator, value});
-                i += 1; // Skip the value since it has been processed
+        // Parse WHERE clause conditions
+        if (tokens.length > 4 && tokens[4].equalsIgnoreCase("WHERE")) {
+            for (int i = 5; i < tokens.length; i++) {
+                if (tokens[i].equalsIgnoreCase("AND") || tokens[i].equalsIgnoreCase("OR")) {
+                    // Add AND/OR conditions
+                    whereClauseConditions.add(new String[] {tokens[i].toUpperCase(), null, null, null});
+                } else if (isOperator(tokens[i])) {
+                    // Add condition with operator (column, operator, value)
+                    String column = tokens[i - 1];
+                    String operator = tokens[i];
+                    String value = tokens[i + 1];
+                    whereClauseConditions.add(new String[] {null, column, operator, value});
+                    i += 1; // Skip the value since it has been processed
+                }
             }
         }
-    }
 
-    StringBuilder result = new StringBuilder();
-    result.append(String.join("\t", columns)).append("\n"); // Print column headers
+        StringBuilder result = new StringBuilder();
+        result.append(String.join("\t", tbl.getColumns())).append("\n"); // Print column headers
 
-    // Filter rows based on WHERE clause
-    for (String key : tableData.keys()) {
-        Map<String, String> row = tableData.get(key);
-        boolean match = evaluateWhereConditions(row, whereClauseConditions);
-        if (match) {
-            for (String column : columns) {
-                result.append(row.getOrDefault(column, "NULL")).append("\t");
+        // Filter rows based on WHERE clause
+        for (Map<String, String> row : tbl.getAllRowsOrdered()) {
+            boolean match = evaluateWhereConditions(row, whereClauseConditions);
+            if (match) {
+                for (String column : tbl.getColumns()) {
+                    result.append(row.getOrDefault(column, "NULL")).append("\t");
+                }
+                result.append("\n");
             }
-            result.append("\n");
         }
-    }
 
-    return result.toString();
+        return result.toString();
     }
 
     public String update(String[] tokens) {
@@ -196,11 +212,6 @@ public class Engine {
     
         String setColumn = tokens[3]; // column to be updated
         String newValue = tokens[5]; // new value for above column
-    
-        List<String> columns = tbl.getColumns();
-    
-        // Retrieve table data
-        QuadraticProbeHashMap<String, Map<String, String>> tableData = tbl.getDataList(); // Assuming getData() returns your ChainHashMap
     
         // Initialize whereClauseConditions list
         List<String[]> whereClauseConditions = new ArrayList<>();
@@ -223,12 +234,11 @@ public class Engine {
         }
     
         StringBuilder result = new StringBuilder();
-        result.append(String.join("\t", columns)).append("\n"); // Print column headers
+        result.append(String.join("\t", tbl.getColumns())).append("\n"); // Print column headers
     
         // Update rows based on WHERE clause
         int ct = 0; // count number of affected rows
-        for (String key : tableData.keys()) { // Ensure you have a keys() method to get all keys
-            Map<String, String> row = tableData.get(key);
+        for (Map<String, String> row : tbl.getAllRowsOrdered()) {
             boolean match = evaluateWhereConditions(row, whereClauseConditions);
             if (match) {
                 row.put(setColumn, newValue);
@@ -237,31 +247,6 @@ public class Engine {
         }
     
         return "Table " + tableName + " updated. " + ct + " rows affected.";
-    }
-
-    public String create(String[] tokens) { 
-        if (!tokens[1].equalsIgnoreCase("TABLE")) {
-            return "ERROR: Invalid CREATE TABLE syntax";
-        }
-
-        String tableName = tokens[2];
-
-        // Check if the table already exists
-        if (tableMap.containsKey(tableName)) {
-            return "ERROR: Table already exists";
-        }
-
-        // Extract the column list between parentheses
-        String columnList = queryBetweenParentheses(tokens, 3);
-        List<String> columns = Arrays.stream(columnList.split(","))
-                                     .map(String::trim)
-                                     .collect(Collectors.toList());
-
-        // Create the new table and add it to the hash map
-        Table newTable = new Table(tableName, columns);
-        tableMap.put(tableName, newTable); // Store table by name
-
-        return "Table " + tableName + " created";
     }
 
     //Additional methods
