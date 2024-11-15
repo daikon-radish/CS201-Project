@@ -24,9 +24,53 @@ public class QuadraticProbeHashMap<K, V> {
         size = 0;
     }
 
+    // original hash
     private int hash(K key) {
         return (key == null) ? 0 : Math.abs(key.hashCode() % table.length);
     }
+
+    //bit manipulation hash
+    // private int hash(K key) {
+    //     int hash = (key == null) ? 0 : key.hashCode();
+    //     hash ^= (hash >>> 16);   // XOR the hash with a right-shifted version to mix bits
+    //     hash ^= (hash << 5);     // Left shift and XOR to further scramble bits
+    //     hash ^= (hash >>> 4);    // Additional shift to spread out bits
+    //     return Math.abs(hash % table.length);  // Ensure positive and within bounds
+    // }
+
+    //polynomial hash
+    // private int hash(String key) {
+    //     int p = 31;   // Prime base (common choice)
+    //     int m = 1_000_000_007;  // Large prime modulus for minimizing overflow
+    //     int hash = 0;
+    //     int power = 1;  // To store p^i values
+    
+    //     for (int i = 0; i < key.length(); i++) {
+    //         hash = (hash + (key.charAt(i) * power) % m) % m; // Character value times power of base
+    //         power = (power * p) % m;  // Update the power of p for next character
+    //     }
+    //     return Math.abs(hash % table.length);  // Ensure positive hash within bounds
+    // }
+
+    //cyclic shift hash
+    // private int hash(K key) {
+    //     int hash = 0;
+    //     String strKey = key.toString(); // Convert the key to a string for demonstration
+    
+    //     for (int i = 0; i < strKey.length(); i++) {
+    //         hash = (hash << 5) | (hash >>> 27);  // Left rotate by 5 bits
+    //         hash += strKey.charAt(i);            // Add character value
+    //     }
+    //     return Math.abs(hash % table.length);  // Ensure hash is within bounds
+    // }
+
+    //multiplicative hash
+    // private int hash(K key) {
+    //     double A = 0.6180339887;  // Fractional part of (sqrt(5) - 1) / 2
+    //     int hash = (key == null) ? 0 : key.hashCode();
+    //     double fractionalPart = (hash * A) % 1;  // Keep only the fractional part
+    //     return (int) (table.length * fractionalPart);  // Scale to table size
+    // }
 
     @SuppressWarnings("unchecked")
     private void resize() {
