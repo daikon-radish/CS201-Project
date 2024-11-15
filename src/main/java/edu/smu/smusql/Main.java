@@ -45,7 +45,9 @@ public class Main {
     public static void autoEvaluate() {
 
         // Set the number of queries to execute
-        int numberOfQueries = 1000000;
+        // int numberOfQueries = 1000000;
+        int numberOfQueries = 500000;
+        
 
         // Create tables
         dbEngine.executeSQL("CREATE TABLE users (id, name, age, city)");
@@ -57,6 +59,14 @@ public class Main {
 
         // Prepopulate the tables in preparation for evaluation
         prepopulateTables(random);
+
+        // Start the timer
+        long startTime = System.nanoTime();
+
+        //track memory usage
+        Runtime runtime = Runtime.getRuntime();
+        long usedMemoryBefore = (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024);
+
 
         // Loop to simulate millions of queries
         for (int i = 0; i < numberOfQueries; i++) {
@@ -85,11 +95,17 @@ public class Main {
 
             // Print progress every 100,000 queries
             if (i % 10000 == 0){
+                long currentTime = System.nanoTime();
+                double elapsedSeconds = (currentTime - startTime) / 1_000_000_000.0;
                 System.out.println("Processed " + i + " queries...");
+                System.out.println("Time after processing " + i + " queries: " + elapsedSeconds + " seconds");
             }
         }
 
         System.out.println("Finished processing " + numberOfQueries + " queries.");
+        // Measure memory usage
+        long usedMemoryAfter = (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024);
+        System.out.println("Memory used: " + (usedMemoryAfter - usedMemoryBefore) + " MB");
     }
 
     private static void prepopulateTables(Random random) {

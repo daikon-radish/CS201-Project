@@ -26,14 +26,66 @@ public class ChainHashMap<K, V> {
         size = 0;
     }
 
+    // original hash
+    // private int hash(K key) {
+    //     return (key == null) ? 0 : Math.abs(key.hashCode() % table.length);
+    // }
+
+    //bit manipulation hash
+    // private int hash(K key) {
+    //     int hash = (key == null) ? 0 : key.hashCode();
+    //     hash ^= (hash >>> 16);   // XOR the hash with a right-shifted version to mix bits
+    //     hash ^= (hash << 5);     // Left shift and XOR to further scramble bits
+    //     hash ^= (hash >>> 4);    // Additional shift to spread out bits
+    //     return Math.abs(hash % table.length);  // Ensure positive and within bounds
+    // }
+
+    //polynomial hash, memory 115MB for 500000 queries
     private int hash(K key) {
-        return (key == null) ? 0 : Math.abs(key.hashCode() % table.length);
+        // Ensure the key is not null
+        if (key == null) {
+            throw new IllegalArgumentException("Key cannot be null");
+        }
+
+        // Convert the key to a string
+        String keyStr = key.toString();  // Convert K to String
+        long p = 31;   // Prime base (common choice)
+        long m = 1_000_000_007;  // Large prime modulus for minimizing overflow
+        long hash = 0;  // Use long to avoid overflow
+        long power = 1; // Use long to avoid overflow
+
+        for (int i = 0; i < keyStr.length(); i++) {
+            hash = (hash + (keyStr.charAt(i) * power) % m) % m; // Character value times power of base
+            power = (power * p) % m;  // Update the power of p for next character
+        }
+        return (int) Math.abs(hash % table.length);  // Ensure positive hash within bounds
     }
+
+    //cyclic shift hash
+    // private int hash(K key) {
+    //     int hash = 0;
+    //     String strKey = key.toString(); // Convert the key to a string for demonstration
+    
+    //     for (int i = 0; i < strKey.length(); i++) {
+    //         hash = (hash << 5) | (hash >>> 27);  // Left rotate by 5 bits
+    //         hash += strKey.charAt(i);            // Add character value
+    //     }
+    //     return Math.abs(hash % table.length);  // Ensure hash is within bounds
+    // }
+
+    //multiplicative hash
+    // private int hash(K key) {
+    //     double A = 0.6180339887;  // Fractional part of (sqrt(5) - 1) / 2
+    //     int hash = (key == null) ? 0 : key.hashCode();
+    //     double fractionalPart = (hash * A) % 1;  // Keep only the fractional part
+    //     return (int) (table.length * fractionalPart);  // Scale to table size
+    // }
+    
 
     @SuppressWarnings("unchecked")
     private void resize() {
         LinkedList<Entry<K, V>>[] oldTable = table;
-        table = new LinkedList[oldTable.length * 2];
+        table = new LinkedList[oldTable.length * 2]; //maybe can play around with this to 1.5 to see if improved performance
         for (int i = 0; i < table.length; i++) {
             table[i] = new LinkedList<>();
         }
