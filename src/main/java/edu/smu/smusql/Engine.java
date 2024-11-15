@@ -135,16 +135,22 @@ public class Engine {
         result.append(String.join("\t", columns)).append("\n"); // Print column headers
     
         int ct = 0; // count number of rows affected.
+        List<String> keysToRemove = new ArrayList<>();
         
-        // Iterate over the keys in the hash map and check for matches
+        // Collect keys to remove
         for (String key : tbl.getHashMap().keySet()) {
             Map<String, String> row = tbl.getRow(key);
             boolean match = evaluateWhereConditions(row, whereClauseConditions);
 
             if (match) {
-                tbl.removeRow(key);
-                ct++;
+                keysToRemove.add(key); // Add key to removal list
             }
+        }
+
+        // Remove collected keys
+        for (String key : keysToRemove) {
+            tbl.removeRow(key);
+            ct++;
         }
         return "Rows deleted from " + tableName + ". " + ct + " rows affected.";
     }
