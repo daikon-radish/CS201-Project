@@ -264,87 +264,164 @@ public class Engine {
         return result.toString().trim().replaceAll("\\(", "").replaceAll("\\)", "");
     }
 
-// Helper method to determine if a string is an operator
-private boolean isOperator(String token) {
-    if (token == null) {
-        return false; // Handle null input
-    }
-    Set<String> operators = new HashSet<>(Set.of("=", ">", "<", ">=", "<="));
-    return operators.contains(token);
-}
-
-private boolean evaluateWhereConditions(Map<String, String> row, List<String[]> conditions) {
-    boolean overallMatch = false; // Start with false for OR logic
-    boolean currentConditionResult = true; // Evaluate each condition independently
-    
-    // Loop through conditions to evaluate AND/OR logic correctly
-    for (String[] condition : conditions) {
-        if (condition[0] != null) { // Logical operator (AND/OR)
-            if (condition[0].equals("AND")) {
-                overallMatch = overallMatch && currentConditionResult;
-            } else if (condition[0].equals("OR")) {
-                overallMatch = overallMatch || currentConditionResult;
-            }
-            currentConditionResult = true; // Reset for the next condition
-        } else {
-            // Evaluate single condition
-            String column = condition[1];
-            String operator = condition[2];
-            String value = condition[3];
-            String rowValue = row.get(column);
-            boolean match = evaluateCondition(rowValue, operator, value);
-            
-            // Update `currentConditionResult` for this condition
-            currentConditionResult = currentConditionResult && match;
-        }
+    private boolean isOperator(String token) {
+        return token.equals("=") || token.equals(">") || token.equals("<") || token.equals(">=") || token.equals("<=");
     }
     
-    // Final combination of the last evaluated condition
-    overallMatch = overallMatch || currentConditionResult;
-    
-    return overallMatch;
-}
-
-// Helper method to evaluate a single condition
-private boolean evaluateCondition(String columnValue, String operator, String value) {
-    if (columnValue == null || value == null) return false;
-
-    // Compare strings as numbers if possible
-    boolean isNumeric = isNumeric(columnValue) && isNumeric(value);
-    
-    if (isNumeric) {
-        double columnNumber = Double.parseDouble(columnValue);
-        double valueNumber = Double.parseDouble(value);
-
-        switch (operator) {
-            case "=": return columnNumber == valueNumber;
-            case ">": return columnNumber > valueNumber;
-            case "<": return columnNumber < valueNumber;
-            case ">=": return columnNumber >= valueNumber;
-            case "<=": return columnNumber <= valueNumber;
-            default: throw new IllegalArgumentException("Invalid operator: " + operator);
-        }
-    } else {
-        switch (operator) {
-            case "=": return columnValue.equals(value);
-            case ">": return columnValue.compareTo(value) > 0;
-            case "<": return columnValue.compareTo(value) < 0;
-            case ">=": return columnValue.compareTo(value) >= 0;
-            case "<=": return columnValue.compareTo(value) <= 0;
-            default: throw new IllegalArgumentException("Invalid operator: " + operator);
-        }
-    }
-}
-
-    // Helper method to determine if a string is numeric
-    private boolean isNumeric(String str) {
-        try {
-            Double.parseDouble(str);
+    private boolean evaluateWhereConditions(Map<String, String> row, List<String[]> conditions) {
+        // Edge case: If no conditions exist, return true (no filter applied).
+        if (conditions.isEmpty()) {
             return true;
-        } catch (NumberFormatException e) {
+        }
+    
+        List<Boolean> results = new ArrayList<>();
+        List<String> operators = new ArrayList<>();
+    
+        // Parse and evaluate each condition
+        for (String[] condition : conditions) {
+            if (condition[0] != null) {
+                // This is an AND/OR operator
+                operators.add(condition[0]);
+            } else {
+                // This is a condition (column, operator, value)
+                String column = condition[1];
+                String operator = condition[2];
+                String value = condition[3];
+    
+                boolean result = evaluateCondition(row, column, operator, value);
+                results.add(result);
+            }
+        }
+    
+        // Edge case: If no results (e.g., invalid conditions), return false.
+        if (results.isEmpty()) {
             return false;
         }
+    
+        // Combine the results using the operators
+        return combineConditions(results, operators);
     }
+    
+    private boolean evaluateCondition(Map<String, String> row, String column, String operator, String value) {
+        String columnValue = row.get(column);
+    
+        switch (operator) {
+            case "=":
+                return columnValue != null && columnValue.equals(value);
+            case "!=":
+                return columnValue != null && !columnValue.equals(value);
+            case "<":
+                return columnValue != null && Integer.parseInt(columnValue) < Integer.parseInt(value);
+            case ">":
+                return columnValue != null && Integer.parseInt(columnValue) > Integer.parseInt(value);
+            case "<=":
+                return columnValue != null && Integer.parseInt(columnValue) <= Integer.parseInt(value);
+            case ">=":
+                return columnValue != null && Integer.parseInt(columnValue) >= Integer.parseInt(value);
+            default:
+                return false;
+        }
+    }
+    
+    private boolean combineConditions(List<Boolean> results, List<String> operators) {
+        // Start with the first result as the initial value
+        boolean current = results.get(0);
+    
+        // Combine results using the operators
+        for (int i = 0; i < operators.size(); i++) {
+            String operator = operators.get(i);
+            boolean next = results.get(i + 1);
+    
+            if (operator.equals("AND")) {
+                current = current && next;
+            } else if (operator.equals("OR")) {
+                current = current || next;
+            }
+        }
+    
+        return current;
+    }
+// // Helper method to determine if a string is an operator
+// private boolean isOperator(String token) {
+//     if (token == null) {
+//         return false; // Handle null input
+//     }
+//     Set<String> operators = new HashSet<>(Set.of("=", ">", "<", ">=", "<="));
+//     return operators.contains(token);
+// }
+
+// private boolean evaluateWhereConditions(Map<String, String> row, List<String[]> conditions) {
+//     boolean overallMatch = false; // Start with false for OR logic
+//     boolean currentConditionResult = true; // Evaluate each condition independently
+    
+//     // Loop through conditions to evaluate AND/OR logic correctly
+//     for (String[] condition : conditions) {
+//         if (condition[0] != null) { // Logical operator (AND/OR)
+//             if (condition[0].equals("AND")) {
+//                 overallMatch = overallMatch && currentConditionResult;
+//             } else if (condition[0].equals("OR")) {
+//                 overallMatch = overallMatch || currentConditionResult;
+//             }
+//             currentConditionResult = true; // Reset for the next condition
+//         } else {
+//             // Evaluate single condition
+//             String column = condition[1];
+//             String operator = condition[2];
+//             String value = condition[3];
+//             String rowValue = row.get(column);
+//             boolean match = evaluateCondition(rowValue, operator, value);
+            
+//             // Update `currentConditionResult` for this condition
+//             currentConditionResult = currentConditionResult && match;
+//         }
+//     }
+    
+//     // Final combination of the last evaluated condition
+//     overallMatch = overallMatch || currentConditionResult;
+    
+//     return overallMatch;
+// }
+
+// // Helper method to evaluate a single condition
+// private boolean evaluateCondition(String columnValue, String operator, String value) {
+//     if (columnValue == null || value == null) return false;
+
+//     // Compare strings as numbers if possible
+//     boolean isNumeric = isNumeric(columnValue) && isNumeric(value);
+    
+//     if (isNumeric) {
+//         double columnNumber = Double.parseDouble(columnValue);
+//         double valueNumber = Double.parseDouble(value);
+
+//         switch (operator) {
+//             case "=": return columnNumber == valueNumber;
+//             case ">": return columnNumber > valueNumber;
+//             case "<": return columnNumber < valueNumber;
+//             case ">=": return columnNumber >= valueNumber;
+//             case "<=": return columnNumber <= valueNumber;
+//             default: throw new IllegalArgumentException("Invalid operator: " + operator);
+//         }
+//     } else {
+//         switch (operator) {
+//             case "=": return columnValue.equals(value);
+//             case ">": return columnValue.compareTo(value) > 0;
+//             case "<": return columnValue.compareTo(value) < 0;
+//             case ">=": return columnValue.compareTo(value) >= 0;
+//             case "<=": return columnValue.compareTo(value) <= 0;
+//             default: throw new IllegalArgumentException("Invalid operator: " + operator);
+//         }
+//     }
+// }
+
+//     // Helper method to determine if a string is numeric
+//     private boolean isNumeric(String str) {
+//         try {
+//             Double.parseDouble(str);
+//             return true;
+//         } catch (NumberFormatException e) {
+//             return false;
+//         }
+//     }
 
     private String generateUniqueKey(Map<String, String> rowData) {
         // Assuming "id" is a column in rowData that contains a unique identifier
