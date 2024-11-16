@@ -404,24 +404,68 @@ public class Engine {
 
     private boolean evaluateCondition(Map<String, String> row, String column, String operator, String value) {
         String columnValue = row.get(column);
-
-        switch (operator) {
-            case "=":
-                return columnValue != null && columnValue.equals(value);
-            case "!=":
-                return columnValue != null && !columnValue.equals(value);
-            case "<":
-                return columnValue != null && Integer.parseInt(columnValue) < Integer.parseInt(value);
-            case ">":
-                return columnValue != null && Integer.parseInt(columnValue) > Integer.parseInt(value);
-            case "<=":
-                return columnValue != null && Integer.parseInt(columnValue) <= Integer.parseInt(value);
-            case ">=":
-                return columnValue != null && Integer.parseInt(columnValue) >= Integer.parseInt(value);
-            default:
-                return false;
+    
+        // If column value or the value to compare is null, return false for any comparison
+        if (columnValue == null || value == null) {
+            return false;
+        }
+    
+        // Check if columnValue and value are numeric and handle accordingly
+        try {
+            // Attempt to parse as integer
+            int columnIntValue = Integer.parseInt(columnValue);
+            int comparisonValue = Integer.parseInt(value);
+    
+            return compareIntegers(operator, columnIntValue, comparisonValue);
+        } catch (NumberFormatException e1) {
+            // If integer parsing fails, try parsing as float
+            try {
+                float columnFloatValue = Float.parseFloat(columnValue);
+                float comparisonValue = Float.parseFloat(value);
+    
+                return compareFloats(operator, columnFloatValue, comparisonValue);
+            } catch (NumberFormatException e2) {
+                // If both integer and float parsing fail, treat values as strings
+                return compareStrings(operator, columnValue, value);
+            }
         }
     }
+    
+    // Method to compare integer values
+    private boolean compareIntegers(String operator, int columnValue, int comparisonValue) {
+        switch (operator) {
+            case "=": return columnValue == comparisonValue;
+            case "!=": return columnValue != comparisonValue;
+            case "<": return columnValue < comparisonValue;
+            case ">": return columnValue > comparisonValue;
+            case "<=": return columnValue <= comparisonValue;
+            case ">=": return columnValue >= comparisonValue;
+            default: return false;
+        }
+    }
+    
+    // Method to compare float values
+    private boolean compareFloats(String operator, float columnValue, float comparisonValue) {
+        switch (operator) {
+            case "=": return columnValue == comparisonValue;
+            case "!=": return columnValue != comparisonValue;
+            case "<": return columnValue < comparisonValue;
+            case ">": return columnValue > comparisonValue;
+            case "<=": return columnValue <= comparisonValue;
+            case ">=": return columnValue >= comparisonValue;
+            default: return false;
+        }
+    }
+    
+    // Method to compare string values
+    private boolean compareStrings(String operator, String columnValue, String comparisonValue) {
+        switch (operator) {
+            case "=": return columnValue.equals(comparisonValue);
+            case "!=": return !columnValue.equals(comparisonValue);
+            default: return false;
+        }
+    }
+    
 
     private boolean combineConditions(List<Boolean> results, List<String> operators) {
         // Start with the first result as the initial value
