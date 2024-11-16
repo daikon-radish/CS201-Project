@@ -1,6 +1,7 @@
 package edu.smu.smusql;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 // @author ziyuanliu@smu.edu.sg
 
@@ -30,6 +31,9 @@ public class Main {
                 double elapsedTimeInSecond = (double) elapsedTime / 1_000_000_000;
                 System.out.println("Time elapsed: " + elapsedTimeInSecond + " seconds");
                 break;
+            } else if (query.equalsIgnoreCase("custom")) {
+                customTestCases();
+                break;
             }
 
             System.out.println(dbEngine.executeSQL(query));
@@ -37,6 +41,139 @@ public class Main {
         scanner.close();
     }
 
+    //custom test cases
+    public static void customTestCases() {
+        System.out.println("Setting up database...");
+        setupDatabase();
+    
+        System.out.println("Running custom test cases...");
+        runTests();
+    }
+    
+    private static void setupDatabase() {
+        // Create tables and insert initial data
+        dbEngine.executeSQL("CREATE TABLE student (id, name, age)");
+        dbEngine.executeSQL("INSERT INTO student VALUES (1, 'Jon', 22)");
+        dbEngine.executeSQL("INSERT INTO student VALUES (2, 'Mary', 25)");
+        dbEngine.executeSQL("INSERT INTO student VALUES (3, 'Jane', 23)");
+        dbEngine.executeSQL("INSERT INTO student VALUES (4, 'Tom', 28)");
+        dbEngine.executeSQL("INSERT INTO student VALUES (5, 'Ali', 22)");
+    }
+    
+    private static List<String> formatResult(String rawResult) {
+        // Split raw result into lines and normalize spacing for each line
+        return Arrays.stream(rawResult.split("\n"))
+            .map(line -> line.trim().replaceAll("\\s+", " ")) // Trim and normalize spacing
+            .collect(Collectors.toList());
+    }
+
+    private static void runTests() {
+        List<TestCase> testCases = new ArrayList<>();
+        // Define test cases
+        testCases.add(new TestCase(
+            "SELECT * FROM student",
+            List.of(
+                "id name age",
+                "1 'Jon' 22",
+                "2 'Mary' 25",
+                "3 'Jane' 23",
+                "4 'Tom' 28",
+                "5 'Ali' 22"
+            )
+        ));
+        testCases.add(new TestCase(
+            "SELECT * FROM student WHERE id >= 3 AND age = 22",
+            List.of(
+                "id name age",
+                "5 'Ali' 22"
+            )
+        ));
+        testCases.add(new TestCase(
+            "INSERT INTO student VALUES (6, 'Sara', 24)",
+            List.of("Row inserted into student")
+        ));
+        testCases.add(new TestCase(
+            "SELECT * FROM student WHERE id = 6",
+            List.of(
+                "id name age",
+                "6 'Sara' 24"
+            )
+        ));
+        testCases.add(new TestCase(
+            "UPDATE student SET age = 26 WHERE id = 2",
+            List.of("Table student updated. 1 rows affected.")
+        ));
+        testCases.add(new TestCase(
+            "SELECT * FROM student WHERE id = 2",
+            List.of(
+                "id name age",
+                "2 'Mary' 26"
+            )
+        ));
+        testCases.add(new TestCase(
+            "DELETE FROM student WHERE id = 4",
+            List.of("Rows deleted from student. 1 rows affected.")
+        ));
+        testCases.add(new TestCase(
+            "SELECT * FROM student WHERE id = 4",
+            List.of("id name age") // Expect only headers since no rows match
+        ));
+        testCases.add(new TestCase(
+            "SELECT * FROM student WHERE age >= 23",
+            List.of(
+                "id name age",
+                "2 'Mary' 26",
+                "3 'Jane' 23",
+                "6 'Sara' 24"
+            )
+        ));
+        testCases.add(new TestCase(
+            "SELECT * FROM student WHERE id <= 3 AND age < 24",
+            List.of(
+                "id name age",
+                "1 'Jon' 22",
+                "3 'Jane' 23"
+            )
+        ));
+        testCases.add(new TestCase(
+            "SELECT * FROM student WHERE id <= 3 OR age > 25",
+            List.of(
+                "id name age",
+                "1 'Jon' 22",
+                "2 'Mary' 26",
+                "3 'Jane' 23"
+            )
+        ));
+
+        // Execute and validate each test case
+        for (TestCase testCase : testCases) {
+            System.out.println("Executing query: " + testCase.query);
+            // Normalize the raw result
+            String rawResult = dbEngine.executeSQL(testCase.query);
+            List<String> actualResult = formatResult(rawResult);
+
+            // Check for strict row-by-row match
+            boolean passed = testCase.expectedResults.equals(actualResult);
+
+            System.out.println("Test " + (passed ? "PASSED" : "FAILED"));
+            if (!passed) {
+                System.out.println("Expected: " + testCase.expectedResults);
+                System.out.println("Actual: " + actualResult);
+            }
+            System.out.println();
+        }
+    }
+
+    
+    private static class TestCase {
+        String query;
+        List<String> expectedResults;
+    
+        TestCase(String query, List<String> expectedResults) {
+            this.query = query;
+            this.expectedResults = expectedResults;
+        }
+    }
 
     /*
      *  Below is the code for auto-evaluating your work.
